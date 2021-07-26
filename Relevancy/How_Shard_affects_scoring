@@ -32,15 +32,15 @@ GET /people/_doc/_search
 #document를 좀 더 추가해보면 점수에 어떤 변화가 생기는지 보자.
 PUT /people/_doc/2
 {
-  "title": "Shane C"
+  "title": "Richet C"
 }
 PUT /people/_doc/3
 {
-  "title": "Shane Connelly"
+  "title": "Richet Connelly"
 }
 PUT /people/_doc/4
 {
-  "title": "Shane P Connelly"
+  "title": "Richet P Connelly"
 }
 
 
