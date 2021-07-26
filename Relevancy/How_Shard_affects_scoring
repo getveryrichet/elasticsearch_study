@@ -1,0 +1,87 @@
+PUT people
+{
+  "settings": {
+    "number_of_shards": 5,
+    "index" : {
+        "similarity" : {
+          "default" : {
+            "type" : "BM25"
+          }
+        }
+    }
+  }
+}
+
+#doc1에 title가진 놈 넣기
+PUT /people/_doc/1
+{
+  "title": "Richet"
+}
+
+#아래로 검색해보면, 찾아진 document에 점수가 0.2876821임.
+#이 스코어 잘 기억해 둘 것.
+GET /people/_doc/_search
+{
+    "query": {
+        "match": {
+             "title": "Richet"
+         }
+      }
+}
+
+#document를 좀 더 추가해보면 점수에 어떤 변화가 생기는지 보자.
+PUT /people/_doc/2
+{
+  "title": "Shane C"
+}
+PUT /people/_doc/3
+{
+  "title": "Shane Connelly"
+}
+PUT /people/_doc/4
+{
+  "title": "Shane P Connelly"
+}
+
+
+#그래고 다시 search해보자
+GET /people/_doc/_search
+{
+    "query": {
+        "match": {
+             "title": "Shane"
+         }
+      }
+}
+#doc1,3은 0.2876821이고
+#doc2=0.19856805
+#doc4=0.16853254
+
+#doc2랑 #doc3는 비슷한데, 왜 #doc2가 더 낮은 점수를 받을까?
+#C, Connelly가 달라서? 아님.
+#샤드랑 관련이 있음
+
+#아래 커맨드 실행해서 샤드별 정보를 한번 봐보자.
+GET /_cat/shards/people?v
+#각 샤드마다 다른 갯수의 document를 가지고 있음
+# = 다 다른 샤드에 들어가 있고, 엘라스틱서치는 per-shard-basis로 스코어를 메기기 때문에 점수가 다른것.
+#다 같은 shard에 있었다면 같은 점수가 나왔을 것임.
+
+#해결 방법
+#1) 더 많은 데이터 입력
+#통계적으로 더 많은 데이터 갯수가 생길수록 정규분포를 그리게 되면서, 샤드로 인한 스코어링 차이는 점점 줄어들 것임.
+
+#2) set number_of_shards to 1
+#근데, 이건 tradeoff들이 있음
+
+#3) ?search_type=dfs_query_then_fetch를 붙여서 검색을 하게되면 하나의 샤드에 있었던 것처럼 처리가 됨
+#하지만, add an extran round trip during processing to go gather all of the statiscis이기 때문에 굳이 안함. 
+
+GET /people/_doc/_search?search_type=dfs_query_then_fetch
+{
+    "query": {
+        "match": {
+             "title": "Shane"
+         }
+      }
+}
